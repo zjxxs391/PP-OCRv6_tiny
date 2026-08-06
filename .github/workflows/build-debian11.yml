@@ -1,12 +1,15 @@
 name: 构建 Debian 11 OCR 程序
 
 # 在 Debian 11 (glibc 2.31) 容器中构建，产出兼容 Debian 11 的 Linux 二进制。
-# 产物以 GitHub Actions Artifact 形式提供，可在 Actions 页面下载。
+# 编译成功后自动发布到 GitHub Releases，版本号 = 编译成功日期（如 2026.08.06）。
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-debian11:
@@ -21,9 +24,32 @@ jobs:
           docker run --rm -v "$PWD/dist:/out" ocr-debian11 \
             bash -c "cp /app/dist/OCR-linux /out/ && chmod +x /out/OCR-linux && ls -la /out"
 
-      - name: 上传二进制
+      - name: 上传二进制 (Actions Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: OCR-linux-debian11
           path: dist/OCR-linux
           if-no-files-found: error
+
+      - name: 发布到 Releases（版本号 = 编译成功日期）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(date +%Y.%m.%d)"
+          echo "版本号: $VERSION"
+          cat > /tmp/notes.md <<'EOF'
+          PP-OCRv6 离线 OCR 桌面程序（图片 / PDF）。
+
+          - 完全离线，本地 CPU 推理
+          - 支持图片与 PDF 逐页识别
+          - 运行环境：Debian 11 桌面（需 X11 与中文字体 fonts-noto-cjk）
+          - 用法：双击运行，或命令行自检 `OCR-linux --selftest <图片|PDF>`
+          EOF
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "已存在 Release $VERSION，覆盖资产"
+            gh release upload "$VERSION" dist/OCR-linux --clobber
+          else
+            gh release create "$VERSION" dist/OCR-linux \
+              --title "OCR $VERSION (Debian 11)" \
+              --notes-file /tmp/notes.md
+          fi
