@@ -8,8 +8,9 @@ PP-OCRv6 离线 OCR 桌面程序：支持图片与 PDF，中文/英文识别，�
 
 1. 把本仓库推到 GitHub（或手动触发 Actions）
 2. Actions 会自动在 **Debian 11 容器**内执行 `Dockerfile.debian11` 构建
-3. 构建完成后会自动运行内置自检（识别测试图），通过后把二进制 `OCR-linux` 上传为 Artifact
-4. 在 Actions 页面 → 对应 run → **Artifacts** 下载 `OCR-linux-debian11`
+3. 构建完成后自动运行内置自检（识别测试图），然后**发布到 Releases**（版本号 = 编译成功日期，如 `2026.08.06`）
+4. Release 包含两个资产：`OCR-linux`（直接可执行文件）和 `OCR-<日期>-x86_64.AppImage`（便携格式）
+5. 也可在 Actions 页面 → 对应 run → **Artifacts** 下载
 
 > 为什么必须在 Debian 11 容器里构建：Linux 可执行文件链接构建机的 glibc，
 > 在较新系统上构建的二进制无法在 Debian 11（glibc 2.31）上运行。
@@ -34,8 +35,11 @@ python3 -m PyInstaller --onefile --windowed --name OCR-linux \
 
 ## 使用
 
-- **GUI**：双击 `OCR-linux`，选择图片或 PDF → 开始识别 → 复制 / 保存 txt
+- **GUI**：双击 `OCR-linux`（或 `.AppImage`），选择图片或 PDF → 开始识别 → 复制 / 保存 txt
 - **命令行自检**：`./OCR-linux --selftest <图片或PDF> --out <输出txt>`
+
+AppImage 便携版跨发行版通用；若系统未装 FUSE，运行需加参数：
+`./OCR-2026.08.06-x86_64.AppImage --appimage-extract-and-run`
 
 ## 目标机器运行要求
 
