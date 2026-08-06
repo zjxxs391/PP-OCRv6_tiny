@@ -1,0 +1,29 @@
+name: 构建 Debian 11 OCR 程序
+
+# 在 Debian 11 (glibc 2.31) 容器中构建，产出兼容 Debian 11 的 Linux 二进制。
+# 产物以 GitHub Actions Artifact 形式提供，可在 Actions 页面下载。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-debian11:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 在 Debian 11 容器中构建 + 自检
+        run: |
+          docker build -f Dockerfile.debian11 -t ocr-debian11 .
+          mkdir -p dist
+          docker run --rm -v "$PWD/dist:/out" ocr-debian11 \
+            bash -c "cp /app/dist/OCR-linux /out/ && chmod +x /out/OCR-linux && ls -la /out"
+
+      - name: 上传二进制
+        uses: actions/upload-artifact@v4
+        with:
+          name: OCR-linux-debian11
+          path: dist/OCR-linux
+          if-no-files-found: error

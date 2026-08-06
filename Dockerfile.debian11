@@ -1,0 +1,32 @@
+# 在 Debian 11 (glibc 2.31) 中构建 OCR 桌面版，产出兼容 Debian 11 的 Linux 二进制。
+# 构建：docker build -f Dockerfile.debian11 -t ocr-debian11 .
+FROM debian:11
+
+# Python 3.9 + tkinter（GUI 需要）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-tk python3-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m pip install --no-cache-dir --upgrade pip
+
+WORKDIR /app
+COPY requirements-linux.txt /app/
+RUN python3 -m pip install --no-cache-dir -r /app/requirements-linux.txt
+
+# 应用源码、模型、字符集、图标、测试图
+COPY ocr_app.py ppocr_keys_v6_tiny.json ocr.ico /app/
+COPY models/ /app/models/
+COPY build_assets/ /app/build_assets/
+
+# 打包单文件二进制（Linux 下 --add-data 分隔符是 :）
+RUN python3 -m PyInstaller --onefile --windowed --clean --name OCR-linux \
+    --icon /app/ocr.ico \
+    --add-data "/app/models:models" \
+    --add-data "/app/ppocr_keys_v6_tiny.json:." \
+    /app/ocr_app.py
+
+# 构建后立即自检（验证二进制 + 模型打包正确）
+RUN /app/dist/OCR-linux --selftest /app/build_assets/test.png --out /app/build_assets/selftest.txt \
+    && echo "SELFTEST OK" \
+    && cat /app/build_assets/selftest.txt
+
+CMD ["/bin/bash"]

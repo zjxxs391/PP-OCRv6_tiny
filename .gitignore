@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec
+
+# 浏览器版本（体积大、不属于 Linux 桌面程序范围）
+_ort_runtime/
+node_modules/
+ocr_ui_offline.html
+ocr_ui.html
+_ocr_ui_template.html
+_ocr_offline_template.html
+_build_standalone.py
+_build_offline.py
+ocr.html
+_browser_test.js
+
+# 参考资料与临时产物
+ocr.txt
+_ocr_out/
+梁文锋投资者交流会-录音文字稿.pdf
+
+# 系统文件
+Thumbs.db
+.DS_Store
