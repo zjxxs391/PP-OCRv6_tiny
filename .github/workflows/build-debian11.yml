@@ -79,6 +79,12 @@ jobs:
 
           用法：双击运行，或命令行自检 `OCR-linux --selftest <图片|PDF>`
           EOF
+          cat >> /tmp/notes.md <<EOF
+
+          加速下载（国内用户，经 github.zjxxs395.de5.net 镜像）：
+          https://github.zjxxs395.de5.net/https://github.com/zjxxs391/PP-OCRv6_tiny/releases/download/$VERSION/OCR-linux
+          https://github.zjxxs395.de5.net/https://github.com/zjxxs391/PP-OCRv6_tiny/releases/download/$VERSION/OCR-$VERSION-x86_64.AppImage
+          EOF
           ASSETS="dist/OCR-linux OCR-${VERSION}-x86_64.AppImage"
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "已存在 Release $VERSION，覆盖资产"
