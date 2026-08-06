@@ -2,9 +2,10 @@
 # 构建：docker build -f Dockerfile.debian11 -t ocr-debian11 .
 FROM debian:11
 
-# Python 3.9 + tkinter（GUI 需要）
+# Python 3.9 + tkinter（GUI 需要）+ binutils/patchelf（PyInstaller Linux 构建需要 objdump）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-tk python3-dev \
+    binutils patchelf \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --upgrade pip
 
