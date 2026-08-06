@@ -1,6 +1,8 @@
 # 在 Debian 11 (glibc 2.31) 中构建 OCR 桌面版，产出兼容 Debian 11 的 Linux 二进制。
-# 构建：docker build -f Dockerfile.debian11 -t ocr-debian11 .
+# 构建：docker build --build-arg VERSION=<日期> -f Dockerfile.debian11 -t ocr-debian11 .
 FROM debian:11
+
+ARG VERSION=0.0.0
 
 # Python 3.9 + tkinter（GUI 需要）+ binutils/patchelf（PyInstaller Linux 构建需要 objdump）
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,10 +15,11 @@ WORKDIR /app
 COPY requirements-linux.txt /app/
 RUN python3 -m pip install --no-cache-dir -r /app/requirements-linux.txt
 
-# 应用源码、模型、字符集、图标、测试图
+# 应用源码、模型、字符集、图标、测试图、打包脚本
 COPY ocr_app.py ppocr_keys_v6_tiny.json ocr.ico /app/
 COPY models/ /app/models/
 COPY build_assets/ /app/build_assets/
+COPY packaging/ /app/packaging/
 
 # 打包单文件二进制（Linux 下 --add-data 分隔符是 :）
 RUN python3 -m PyInstaller --onefile --windowed --clean --name OCR-linux \
@@ -29,5 +32,12 @@ RUN python3 -m PyInstaller --onefile --windowed --clean --name OCR-linux \
 RUN /app/dist/OCR-linux --selftest /app/build_assets/test.png --out /app/build_assets/selftest.txt \
     && echo "SELFTEST OK" \
     && cat /app/build_assets/selftest.txt
+
+# 组装 .deb 安装包（安装后自动在桌面创建快捷方式）
+RUN bash /app/packaging/build_deb.sh \
+    /app/dist/OCR-linux \
+    /app/build_assets/ocr.png \
+    ${VERSION} \
+    /app/dist/ocr_${VERSION}_amd64.deb
 
 CMD ["/bin/bash"]

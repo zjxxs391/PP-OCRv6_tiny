@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+# 卸载时移除桌面快捷方式
+awk -F: '$3 >= 1000 && $3 < 60000 {print $6}' /etc/passwd | while read -r home; do
+  [ -n "$home" ] || continue
+  rm -f "$home/桌面/ocr.desktop" "$home/Desktop/ocr.desktop" 2>/dev/null || true
+done
+
+exit 0

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OCR
+Name[zh_CN]=OCR 识别
+Comment=PP-OCRv6 Offline OCR
+Comment[zh_CN]=PP-OCRv6 离线 OCR
+Exec=ocr
+Icon=ocr
+Terminal=false
+Type=Application
+Categories=Utility;

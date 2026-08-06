@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+# 在真实用户（uid 1000-59999）的桌面目录创建快捷方式
+# 支持中文桌面目录「桌面」和英文「Desktop」
+awk -F: '$3 >= 1000 && $3 < 60000 {print $1 ":" $6}' /etc/passwd | while IFS=: read -r user home; do
+  [ -n "$home" ] || continue
+  for dir in "$home/桌面" "$home/Desktop"; do
+    if [ -d "$dir" ]; then
+      cp -f /usr/share/applications/ocr.desktop "$dir/ocr.desktop" 2>/dev/null || true
+      chmod +x "$dir/ocr.desktop" 2>/dev/null || true
+      chown "$user:" "$dir/ocr.desktop" 2>/dev/null || true
+      # GNOME 需要标记为可信任才能双击直接运行
+      if command -v gio >/dev/null 2>&1; then
+        sudo -u "$user" gio set "$dir/ocr.desktop" metadata::trusted true 2>/dev/null || \
+          gio set "$dir/ocr.desktop" metadata::trusted true 2>/dev/null || true
+      fi
+    fi
+  done
+done
+
+exit 0

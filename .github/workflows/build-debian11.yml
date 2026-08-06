@@ -17,12 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 在 Debian 11 容器中构建 + 自检
+      - name: 在 Debian 11 容器中构建 + 自检 + 打包 .deb
         run: |
-          docker build -f Dockerfile.debian11 -t ocr-debian11 .
+          VERSION="$(date +%Y.%m.%d)"
+          docker build --build-arg VERSION="$VERSION" -f Dockerfile.debian11 -t ocr-debian11 .
           mkdir -p dist
           docker run --rm -v "$PWD/dist:/out" ocr-debian11 \
-            bash -c "cp /app/dist/OCR-linux /out/ && chmod +x /out/OCR-linux && ls -la /out"
+            bash -c "cp /app/dist/OCR-linux /out/ && cp /app/dist/ocr_*.deb /out/ && chmod +x /out/OCR-linux && ls -la /out"
 
       - name: 上传可执行文件 (Actions Artifact)
         uses: actions/upload-artifact@v4
@@ -60,6 +61,13 @@ jobs:
           path: OCR-*.AppImage
           if-no-files-found: error
 
+      - name: 上传 .deb (Actions Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocr-deb
+          path: dist/ocr_*.deb
+          if-no-files-found: error
+
       - name: 发布到 Releases（版本号 = 编译成功日期）
         env:
           GH_TOKEN: ${{ github.token }}
@@ -73,22 +81,20 @@ jobs:
           - 支持图片与 PDF 逐页识别
           - 运行环境：Debian 11 桌面（需 X11 与中文字体 fonts-noto-cjk）
 
-          包含两种格式：
+          包含三种格式：
           - OCR-linux：直接可执行文件
           - OCR-<日期>-x86_64.AppImage：便携格式（跨发行版，需 libfuse2）
+          - ocr_<日期>_amd64.deb：Debian 安装包（安装后自动在桌面创建快捷方式）
+
+          .deb 安装：`sudo dpkg -i ocr_<日期>_amd64.deb`，完成后桌面会出现「OCR 识别」快捷方式
 
           用法：双击运行，或命令行自检 `OCR-linux --selftest <图片|PDF>`
           EOF
-          cat >> /tmp/notes.md <<EOF
-
-          加速下载（国内用户，经 github.zjxxs395.de5.net 镜像）：
-          https://github.zjxxs395.de5.net/https://github.com/zjxxs391/PP-OCRv6_tiny/releases/download/$VERSION/OCR-linux
-          https://github.zjxxs395.de5.net/https://github.com/zjxxs391/PP-OCRv6_tiny/releases/download/$VERSION/OCR-$VERSION-x86_64.AppImage
-          EOF
-          ASSETS="dist/OCR-linux OCR-${VERSION}-x86_64.AppImage"
+          ASSETS="dist/OCR-linux OCR-${VERSION}-x86_64.AppImage dist/ocr_${VERSION}_amd64.deb"
           if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "已存在 Release $VERSION，覆盖资产"
+            echo "已存在 Release $VERSION，覆盖资产并更新说明"
             gh release upload "$VERSION" $ASSETS --clobber
+            gh release edit "$VERSION" --notes-file /tmp/notes.md
           else
             gh release create "$VERSION" $ASSETS \
               --title "OCR $VERSION (Debian 11)" \
