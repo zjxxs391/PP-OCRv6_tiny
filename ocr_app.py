@@ -176,6 +176,12 @@ def process_pdf(path, progress=None):
 
 # ---------- 自检模式（供打包后验证，无 GUI） ----------
 def selftest():
+    # 验证 GUI 预览依赖：PIL.ImageTk 依赖 PIL._tkinter_finder，PyInstaller 必须打包
+    try:
+        import PIL.ImageTk  # noqa: F401
+    except Exception as e:
+        print('SELFTEST FAIL: PIL.ImageTk 不可用:', e)
+        return 3
     src = None
     out = None
     if '--selftest' in sys.argv:

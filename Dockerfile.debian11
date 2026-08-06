@@ -22,7 +22,11 @@ COPY build_assets/ /app/build_assets/
 COPY packaging/ /app/packaging/
 
 # 打包单文件二进制（Linux 下 --add-data 分隔符是 :）
+# --collect-submodules PIL 确保 ImageTk/_tkinter_finder 等预览所需模块被打包
 RUN python3 -m PyInstaller --onefile --windowed --clean --name OCR-linux \
+    --collect-submodules PIL \
+    --hidden-import PIL._tkinter_finder \
+    --hidden-import PIL._imagingtk \
     --icon /app/ocr.ico \
     --add-data "/app/models:models" \
     --add-data "/app/ppocr_keys_v6_tiny.json:." \
