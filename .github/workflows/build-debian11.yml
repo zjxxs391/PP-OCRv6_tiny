@@ -1,7 +1,7 @@
 name: 构建 Debian 11 OCR 程序
 
 # 在 Debian 11 (glibc 2.31) 容器中构建，产出兼容 Debian 11 的 Linux 二进制。
-# 编译成功后自动发布到 GitHub Releases，版本号 = 编译成功日期（如 2026.08.06）。
+# 编译成功后自动发布到 GitHub Releases：可执行文件 + AppImage，版本号 = 编译成功日期。
 
 on:
   push:
@@ -24,11 +24,40 @@ jobs:
           docker run --rm -v "$PWD/dist:/out" ocr-debian11 \
             bash -c "cp /app/dist/OCR-linux /out/ && chmod +x /out/OCR-linux && ls -la /out"
 
-      - name: 上传二进制 (Actions Artifact)
+      - name: 上传可执行文件 (Actions Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: OCR-linux-debian11
           path: dist/OCR-linux
+          if-no-files-found: error
+
+      - name: 构建 AppImage
+        run: |
+          VERSION="$(date +%Y.%m.%d)"
+          mkdir -p AppDir
+          cp dist/OCR-linux AppDir/OCR-linux
+          printf '#!/bin/sh\ncd "$(dirname "$0")"\nexec ./OCR-linux "$@"\n' > AppDir/AppRun
+          chmod +x AppDir/AppRun AppDir/OCR-linux
+          cat > AppDir/OCR.desktop <<'EOF'
+          [Desktop Entry]
+          Name=OCR
+          Comment=PP-OCRv6 Offline OCR (image/PDF)
+          Exec=OCR-linux
+          Icon=ocr
+          Type=Application
+          Categories=Utility;
+          EOF
+          cp build_assets/ocr.png AppDir/ocr.png
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract-and-run AppDir "OCR-${VERSION}-x86_64.AppImage"
+          ls -la "OCR-${VERSION}-x86_64.AppImage"
+
+      - name: 上传 AppImage (Actions Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OCR-linux-AppImage
+          path: OCR-*.AppImage
           if-no-files-found: error
 
       - name: 发布到 Releases（版本号 = 编译成功日期）
@@ -43,13 +72,19 @@ jobs:
           - 完全离线，本地 CPU 推理
           - 支持图片与 PDF 逐页识别
           - 运行环境：Debian 11 桌面（需 X11 与中文字体 fonts-noto-cjk）
-          - 用法：双击运行，或命令行自检 `OCR-linux --selftest <图片|PDF>`
+
+          包含两种格式：
+          - OCR-linux：直接可执行文件
+          - OCR-<日期>-x86_64.AppImage：便携格式（跨发行版，需 libfuse2）
+
+          用法：双击运行，或命令行自检 `OCR-linux --selftest <图片|PDF>`
           EOF
+          ASSETS="dist/OCR-linux OCR-${VERSION}-x86_64.AppImage"
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "已存在 Release $VERSION，覆盖资产"
-            gh release upload "$VERSION" dist/OCR-linux --clobber
+            gh release upload "$VERSION" $ASSETS --clobber
           else
-            gh release create "$VERSION" dist/OCR-linux \
+            gh release create "$VERSION" $ASSETS \
               --title "OCR $VERSION (Debian 11)" \
               --notes-file /tmp/notes.md
           fi
